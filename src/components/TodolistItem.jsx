@@ -1,11 +1,11 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import tick from "../assets/tick.png"
 import notTick from "../assets/not_tick.png"
 import deleteIcon from "../assets/delete.png"
 import edit from "../assets/edit.png"
 
 
-export const TodolistItem = ({text,completed,index,deleteTask,toggleComplete,editTask}) => {
+export const TodolistItem = ({id,text,completed,deleteTask,toggleComplete,editTask}) => {
 
     const [isEditing, setIsEditing] = useState(false);
     const [editedText, setEditedText] = useState(text);
@@ -15,7 +15,7 @@ export const TodolistItem = ({text,completed,index,deleteTask,toggleComplete,edi
     <div>
         <div className='flex items-center my-3 gap-2 group'>
             <div className='flex flex-1 items-center cursor-pointer'>
-                <img className='w-5' onClick={() =>{toggleComplete(index)}}src={completed? tick:notTick }  alt='' />
+                <img className='w-5' onClick={() =>{toggleComplete(id)}}src={completed? tick:notTick }  alt='' />
                 
                     {
                         isEditing ? (
@@ -39,18 +39,21 @@ export const TodolistItem = ({text,completed,index,deleteTask,toggleComplete,edi
                 isEditing ? (
                     <button
                          onClick={() => {
-                         editTask(index, editedText);
+                         editTask(id, editedText);
                         setIsEditing(false);
                                 }}
                         className="text-blue-500">Save</button>
                     ):
                     (
-                        <img src={edit} onClick={()=> setIsEditing(true)} className='cursor-pointer w-5 text-gray-200 hidden group-hover:block' />
+                        <img src={edit} onClick={()=> {
+                            setEditedText(text)
+                            setIsEditing(true)
+                        }} className='cursor-pointer w-5 text-gray-200 hidden group-hover:block' />
                     )
                 }
             
             
-            <img src={deleteIcon} onClick={() =>deleteTask(index)} className='w-3.5 cursor-pointer hidden group-hover:block' />
+            <img src={deleteIcon} onClick={() =>deleteTask(id)} className='w-3.5 cursor-pointer hidden group-hover:block' />
             
         </div>
 

@@ -1,67 +1,143 @@
-
+import { Fragment, useEffect, useState } from 'react'
 import { TodolistItem } from './TodolistItem'
-import { useState } from 'react'
-import { useEffect } from 'react'
 import todo from "../assets/todo_icon.png"
 
-
-
-
+const API_URL = 'http://localhost:3001/todos'
 
 export const Todo = () => {
-
-   
-
-    const [tasks, setTasks] = useState([]);
+    const [tasks, setTasks] = useState([])
     const [newTask, setNewTask] = useState("")
+    const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState("")
 
     function handleInputChange(event){
         setNewTask(event.target.value)
     }
 
-     useEffect(() => {
-    fetch('http://localhost:3001/todos')
-    .then((res) => res.json())
-    .then((data) => setTasks(data));
-}, []);
+    useEffect(() => {
+        async function fetchTasks() {
+            try {
+                const response = await fetch(API_URL)
+                if (!response.ok) {
+                    throw new Error('Could not load tasks')
+                }
 
-    function addTask(){
+                const data = await response.json()
+                setTasks(data)
+            } catch (err) {
+                setError(err.message)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        fetchTasks()
+    }, [])
+
+    async function addTask(){
         if(newTask.trim() === "")
         {
-            return;
+            return
         }
 
         const task = {
-            text: newTask,
+            text: newTask.trim(),
             completed: false,
-        };
-        setTasks([...tasks, task]);
-        setNewTask("");
+        }
 
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(task),
+            })
+
+            if (!response.ok) {
+                throw new Error('Could not add task')
+            }
+
+            const savedTask = await response.json()
+            setTasks([...tasks, savedTask])
+            setNewTask("")
+            setError("")
+        } catch (err) {
+            setError(err.message)
+        }
     }
 
-    function deleteTask(index){
-        const updatedTasks = tasks.filter((task, i) => i !== index)
-        setTasks(updatedTasks);
+    async function deleteTask(id){
+        try {
+            const response = await fetch(`${API_URL}/${id}`, {
+                method: 'DELETE',
+            })
+
+            if (!response.ok) {
+                throw new Error('Could not delete task')
+            }
+
+            setTasks(tasks.filter((task) => task.id !== id))
+            setError("")
+        } catch (err) {
+            setError(err.message)
+        }
     }
 
-    function toggleComplete(index){
-        const updatedTasks = [...tasks];
-        updatedTasks[index].completed = !updatedTasks[index].completed;
-        setTasks(updatedTasks);
+    async function toggleComplete(id){
+        const task = tasks.find((item) => item.id === id)
+        if (!task) {
+            return
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/${id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ completed: !task.completed }),
+            })
+
+            if (!response.ok) {
+                throw new Error('Could not update task')
+            }
+
+            const updatedTask = await response.json()
+            setTasks(tasks.map((item) => item.id === id ? updatedTask : item))
+            setError("")
+        } catch (err) {
+            setError(err.message)
+        }
     }
 
-    function editTask(index,newText){
-        const updatedTasks = [...tasks];
-        updatedTasks[index].text = newText;
-        setTasks(updatedTasks);
+    async function editTask(id, newText){
+        const trimmedText = newText.trim()
+        if (trimmedText === "") {
+            return
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/${id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ text: trimmedText }),
+            })
+
+            if (!response.ok) {
+                throw new Error('Could not edit task')
+            }
+
+            const updatedTask = await response.json()
+            setTasks(tasks.map((task) => task.id === id ? updatedTask : task))
+            setError("")
+        } catch (err) {
+            setError(err.message)
+        }
     }
     
-    function moveTaskUp(index){}
-
-    function moveTaskDown(index){}
-
-
   return (
     <div>
 
@@ -81,20 +157,21 @@ export const Todo = () => {
         </div>
 
         <div>
-           {tasks.map((task,index) =>
+            {isLoading && <p className='p-4 text-gray-500'>Loading tasks...</p>}
+            {error && <p className='p-4 text-red-500'>{error}</p>}
+           {tasks.map((task) =>
         {
             return(
-                <>
+                <Fragment key={task.id}>
             <TodolistItem 
+            id={task.id}
             text={task.text}
-             key={index}
              completed = {task.completed}
              toggleComplete = {toggleComplete}
-             index = {index}
              deleteTask = {deleteTask}
              editTask= {editTask} />
              <hr className='my-2 border-gray-200'/>
-             </>
+             </Fragment>
             )
         })}
 
